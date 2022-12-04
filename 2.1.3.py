@@ -302,20 +302,39 @@ class Report:
         table.savefig('graph.png', dpi=300)
         table.show()
 
-    def generate_pdf(self):
+    def generate_pdf(self, choice: str):
         image_file = 'graph.png'
         env = Environment(loader=FileSystemLoader('.'))
-        template = env.get_template("pdf_template.html")
-        pdf_template = template.render({"title": "Аналитика по зарплатам и городам для профессии " + self.__statistic.get_selected_vacancy,
-                                        "image_file": image_file,
-                                        "years_title": "Статистика по годам",
-                                        "years_headers": self.sheet_1_headers,
-                                        "years_rows": self.sheet_1_rows,
-                                        "cities_title": "Статистика по городам",
-                                        "cities_headers": self.sheet_2_headers,
-                                        "count_columns": len(self.sheet_2_headers),
-                                        "cities_rows": self.sheet_2_rows
-                                        })
+        if (choice == "Вакансии"):
+            template = env.get_template("pdf_template_img.html")
+            pdf_template = template.render({"title": "Аналитика по зарплатам и городам для профессии " + self.__statistic.get_selected_vacancy,
+                                            "image_file": image_file,
+                                            })
+        elif (choice == "Статистика"):
+            template = env.get_template("pdf_template_statistic.html")
+            pdf_template = template.render(
+                {"title": "Аналитика по зарплатам и городам для профессии " + self.__statistic.get_selected_vacancy,
+                 "years_title": "Статистика по годам",
+                 "years_headers": self.sheet_1_headers,
+                 "years_rows": self.sheet_1_rows,
+                 "cities_title": "Статистика по городам",
+                 "cities_headers": self.sheet_2_headers,
+                 "count_columns": len(self.sheet_2_headers),
+                 "cities_rows": self.sheet_2_rows
+                 })
+        else:
+            template = env.get_template("pdf_template.html")
+            pdf_template = template.render(
+                {"title": "Аналитика по зарплатам и городам для профессии " + self.__statistic.get_selected_vacancy,
+                 "image_file": image_file,
+                 "years_title": "Статистика по годам",
+                 "years_headers": self.sheet_1_headers,
+                 "years_rows": self.sheet_1_rows,
+                 "cities_title": "Статистика по городам",
+                 "cities_headers": self.sheet_2_headers,
+                 "count_columns": len(self.sheet_2_headers),
+                 "cities_rows": self.sheet_2_rows
+                 })
         config = pdfkit.configuration(wkhtmltopdf=r"C:/Program Files/wkhtmltopdf/bin/wkhtmltopdf.exe")
         pdfkit.from_string(pdf_template, 'report.pdf', configuration=config, options={"enable-local-file-access": True})
 
@@ -376,6 +395,6 @@ def process_file():
     report = Report(data_set.statistic)
     report.generate_excel()
     report.generate_image()
-    report.generate_pdf()
+    report.generate_pdf(input('Введите данные для печати: '))
 
 process_file()
