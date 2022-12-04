@@ -1,3 +1,5 @@
 /.idea
 /venv
 /vacancies.csv
+/vacancies_medium.csv
+/vacancies_big.csv
