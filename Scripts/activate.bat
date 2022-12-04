@@ -1,6 +1,6 @@
 @echo off
 
-set "VIRTUAL_ENV=D:\GitHub\Tarasov"
+set "VIRTUAL_ENV=D:\pythonProject\1.1"
 
 if defined _OLD_VIRTUAL_PROMPT (
     set "PROMPT=%_OLD_VIRTUAL_PROMPT%"
