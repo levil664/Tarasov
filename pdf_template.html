@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Verdana, sans-serif;
+        }
+        .graph_img {
+            margin: auto;
+            width: 100%;
+            height: auto;
+        }
+        h1, h2 {
+            text-align: center;
+        }
+        table {
+            border-collapse: collapse;
+        }
+        .table-years {
+            width: 100%;
+        }
+        .table-cities {
+            width: 100%;
+        }
+        td, th {
+            padding: 5px;
+            border: 1px solid black;
+            text-align: center;
+        }
+        .without-border {
+            border: none;
+        }
+        .city-div {
+            display: flex;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{title}}</h1>
+    <img src="file:///D:/pythonProject/reports/{{ image_file }}" class="graph_img">
+    <h2>{{years_title}}</h2>
+    <table class="table-years">
+        <tr>
+            {% for cell in years_headers %}
+            <th>{{cell}}</th>
+            {% endfor %}
+        </tr>
+        {% for row in years_rows %}
+        <tr>
+            {% for cell in row %}
+            <td>{{cell}}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+    <h2>{{cities_title}}</h2>
+    <table class="table-cities">
+        <tr>
+            {% for cell in range(count_columns) %}
+                {% if cell != 2 %}
+                    <th>{{cities_headers[cell]}}</th>
+                {% else %}
+                    <th class="without-border">{{cities_headers[cell]}}</th>
+                {% endif %}
+            {% endfor %}
+        </tr>
+        {% for row in cities_rows %}
+        <tr>
+            {% for cell in range(count_columns) %}
+                {% if cell != 2 %}
+            <td>{{row[cell]}}</td>
+                {% else %}
+            <td class="without-border">{{row[cell]}}</td>
+                {% endif %}
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
