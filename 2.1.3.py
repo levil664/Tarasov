@@ -385,7 +385,7 @@ class Report:
             ws[column_name + str(i + 2)].border = self.border
 
 
-def process_file():
+def final_process():
     file_name = 'vacancies.csv'
     profession_name = 'Аналитик'
     # file_name = input("Введите название файла: ")
@@ -397,4 +397,4 @@ def process_file():
     report.generate_image()
     report.generate_pdf(input('Введите данные для печати: '))
 
-process_file()
+final_process()
