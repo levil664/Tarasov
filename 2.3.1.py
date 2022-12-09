@@ -83,7 +83,6 @@ class Vacancy:
         """
         return self.__average_salary
 
-
 class Statistic:
     """
     Класс формирующий статистику выбранной вакансии
@@ -673,8 +672,8 @@ def final_process():
     """
     Ввод данных пользователя и передача их в классы
     """
-    file_name = 'vacancies.csv'
-    profession_name = 'Аналитик'
+    file_name = 'vacancies_by_year.csv'
+    profession_name = 'Программист'
     # file_name = input("Введите название файла: ")
     # profession_name = input("Введите название профессии: ")
     data_set = DataSet(file_name, profession_name)
