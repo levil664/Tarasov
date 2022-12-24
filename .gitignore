@@ -2,3 +2,6 @@
 csv/
 venv/
 *.csv
+/.idea
+/csv
+pyvenv.cfg
