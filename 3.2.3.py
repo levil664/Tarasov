@@ -1,9 +1,9 @@
 import time
+import concurrent.futures as pool
 
 import csv, re, math, os
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
-import multiprocess as mp
 
 from jinja2 import Template
 import pdfkit
@@ -50,14 +50,15 @@ class Salary:
     """
     def __init__(self, dictionary):
         """Инициализация объекта Salary. Перевод зарплаты в рубли (для последущего сравнения).
+
         Args:
             dictionary (dict): Словарь информации про зарплату.
         """
         self.salary_from = math.floor(float(dictionary["salary_from"]))
         self.salary_to = math.floor(float(dictionary["salary_to"]))
         self.salary_currency = dictionary["salary_currency"]
-        avg_salary = (self.salary_to + self.salary_from) / 2
-        self.salary_in_rur = currency_to_rub[self.salary_currency] * avg_salary
+        middle_salary = (self.salary_to + self.salary_from) / 2
+        self.salary_in_rur = currency_to_rub[self.salary_currency] * middle_salary
 
 
 class Vacancy:
@@ -70,7 +71,7 @@ class Vacancy:
         """Инициализация объекта Vacancy. Приведение к более удобному виду.
 
         Args:
-            dict (dict): Словарь информации про зарплату.
+            dictionary (dict): Словарь информации про зарплату.
         """
         self.dictionary = dictionary
         self.salary = Salary(dictionary)
@@ -82,21 +83,20 @@ class DataSet:
     """Считывание файла и формирование удобной структуры данных.
 
     Attributes:
-        csv_direction (str): папка расположения всех csv-файлов.
+        csv_dir (str): папка расположения всех csv-файлов.
         profession (str): Название профессии.
         file_name (str): Название большого файла с данными.
     """
-    def __init__(self, csv_direction: str, profession: str, file_name: str):
+    def __init__(self, csv_dir: str, profession: str, file_name: str):
         """Инициализация класса DataSet. Чтение. Фильтрация. Форматирование.
 
         Args:
-            csv_direction (str): папка расположения всех csv-файлов.
+            csv_dir (str): папка расположения всех csv-файлов.
             profession (str): Название профессии.
             file_name (str): Название большого файла с данными.
         """
-        self.csv_direction = csv_direction
+        self.csv_dir = csv_dir
         self.profession = profession
-
         self.start_line = []
         self.year_to_count = {}
         self.year_to_salary = {}
@@ -111,19 +111,21 @@ class DataSet:
         self.sort_year_dicts()
 
     @staticmethod
-    def try_to_add(dictionary: dict, key, value) -> dict:
+    def try_to_add(dictionary: dict, key, val) -> dict:
         """Попытка добавить в словарь значение по ключу или создать новый ключ, если его не было.
 
         Args:
             dictionary (dict): Словарь, в который добавляется ключ или значение по ключу.
+            key: Ключ.
+            val: Значение.
 
         Returns:
             dict: Изменный словарь.
         """
         try:
-            dictionary[key] += value
+            dictionary[key] += val
         except:
-            dictionary[key] = value
+            dictionary[key] = val
         return dictionary
 
     @staticmethod
@@ -151,7 +153,7 @@ class DataSet:
         return dict(sorted(dictionary.items(), key=lambda item: item[0]))
 
     @staticmethod
-    def get_avg_salary(key_to_count: dict, key_to_sum: dict) -> dict:
+    def get_middle_salary(key_to_count: dict, key_to_sum: dict) -> dict:
         """Получить словарь с средними зарплатами.
 
         Args:
@@ -162,11 +164,11 @@ class DataSet:
             dict: Словарь с теми же ключами, но значения по ключам - средняя зарплата.
         """
         key_to_salary = {}
-        for key, value in key_to_count.items():
-            if value == 0:
+        for key, val in key_to_count.items():
+            if val == 0:
                 key_to_salary[key] = 0
             else:
-                key_to_salary[key] = math.floor(key_to_sum[key] / value)
+                key_to_salary[key] = math.floor(key_to_sum[key] / val)
         return key_to_salary
 
     @staticmethod
@@ -182,9 +184,9 @@ class DataSet:
         """
         vacs_count = sum(area_to_count.values())
         area_to_count = dict(filter(lambda item: item[1] / vacs_count > 0.01, area_to_count.items()))
-        area_to_avg_salary = DataSet.get_avg_salary(area_to_count, area_to_sum)
-        area_to_piece = {key: round(value / vacs_count, 4) for key, value in area_to_count.items()}
-        return area_to_avg_salary, area_to_piece
+        area_to_middle_salary = DataSet.get_middle_salary(area_to_count, area_to_sum)
+        area_to_piece = {key: round(val / vacs_count, 4) for key, val in area_to_count.items()}
+        return area_to_middle_salary, area_to_piece
 
     def count_area_data(self, area_to_sum: dict, area_to_count: dict):
         """Считает дополнительные данные для графиков и таблиц. (города)
@@ -205,32 +207,6 @@ class DataSet:
         self.area_to_piece = DataSet.get_sorted_dict(self.area_to_piece)
         self.area_to_salary = DataSet.get_sorted_dict(self.area_to_salary)
 
-    def read_one_csv_file(self, queue: mp.Queue, file_name: str):
-        """Читает один csv-файл и делает данные о нём.
-
-        Args:
-            queue (Queue): очередь для добавления данных.
-            file_name (str): файл, из которого идет чтение.
-        """
-        with open(f"{self.csv_direction}/{file_name}", "r", encoding='utf-8-sig', newline='') as csv_file:
-            file = csv.reader(csv_file)
-            filtered_vacs = []
-            year = int(file_name.replace("file_", "").replace(".csv", ""))
-            for line in file:
-                new_dict_line = dict(zip(self.start_line, line))
-                new_dict_line["is_needed"] = (new_dict_line["name"]).find(self.profession) > -1
-                vac = Vacancy(new_dict_line)
-                filtered_vacs.append(vac)
-            csv_file.close()
-            all_count = len(filtered_vacs)
-            all_sum = sum([vac.salary.salary_in_rur for vac in filtered_vacs])
-            all_avg = math.floor(all_sum / all_count)
-            needed_vacs = list(filter(lambda vacancy: vacancy.is_needed, filtered_vacs))
-            needed_count = len(needed_vacs)
-            needed_sum = sum([vac.salary.salary_in_rur for vac in needed_vacs])
-            needed_avg = math.floor(needed_sum / needed_count)
-            queue.put((year, all_count, all_avg, needed_count, needed_avg))
-
     def csv_divide(self, file_name: str):
         """Разделяет данные на csv-файлы по годам
 
@@ -240,11 +216,10 @@ class DataSet:
         Returns:
             (dict, dict): словарь город/вся зарплата, словарь город/кол-во вакансий.
         """
-        read_queue = mp.Queue()
         area_to_sum = {}
         area_to_count = {}
-        procs = []
         with open(file_name, "r", encoding='utf-8-sig', newline='') as csv_file:
+            all_files = []
             file = csv.reader(csv_file)
             self.start_line = next(file)
             year_index = self.start_line.index("published_at")
@@ -260,30 +235,54 @@ class DataSet:
                     area_to_count = DataSet.try_to_add(area_to_count, vac.dictionary["area_name"], 1)
                     if vac.dictionary["year"] != current_year:
                         new_csv = self.save_file(current_year, data_years)
+                        all_files.append(new_csv)
                         data_years = []
-                        proc = mp.Process(target=self.read_one_csv_file, args=(read_queue, new_csv))
-                        proc.start()
-                        procs.append(proc)
                         current_year = vac.dictionary["year"]
                     data_years.append(line)
             new_csv = self.save_file(str(current_year), data_years)
-            proc = mp.Process(target=self.read_one_csv_file, args=(read_queue, new_csv))
-            procs.append(proc)
-            proc.start()
+            all_files.append(new_csv)
+            with pool.ThreadPoolExecutor(max_workers=16) as executer:
+                res = executer.map(self.read_one_csv_file, all_files)
+            read_queue = list(res)
             csv_file.close()
-            for proc in procs:
-                proc.join()
             self.csv_reader(read_queue)
             return area_to_sum, area_to_count
 
-    def csv_reader(self, read_queue: mp.Queue):
+    def read_one_csv_file(self, file_name: str):
+        """Читает один csv-файл и делает данные о нём.
+
+        Args:
+            file_name (str): файл, из которого идет чтение.
+
+        Returns:
+            list: Вычисленные данные в виде листа.
+        """
+        with open(f"{self.csv_dir}/{file_name}", "r", encoding='utf-8-sig', newline='') as csv_file:
+            file = csv.reader(csv_file)
+            filtered_vacs = []
+            year = int(file_name.replace("file_", "").replace(".csv", ""))
+            for line in file:
+                new_dict_line = dict(zip(self.start_line, line))
+                new_dict_line["is_needed"] = (new_dict_line["name"]).find(self.profession) > -1
+                vac = Vacancy(new_dict_line)
+                filtered_vacs.append(vac)
+            csv_file.close()
+            all_count = len(filtered_vacs)
+            all_sum = sum([vac.salary.salary_in_rur for vac in filtered_vacs])
+            all_middle = math.floor(all_sum / all_count)
+            needed_vacs = list(filter(lambda vacancy: vacancy.is_needed, filtered_vacs))
+            needed_count = len(needed_vacs)
+            needed_sum = sum([vac.salary.salary_in_rur for vac in needed_vacs])
+            needed_middle = math.floor(needed_sum / needed_count)
+        return [year, all_count, all_middle, needed_count, needed_middle]
+
+    def csv_reader(self, read_queue: list):
         """Чтение данных и складывание их результатов воедино.
 
         Args:
             read_queue (Queue): очередь из данных.
         """
-        while not read_queue.empty():
-            data = read_queue.get()
+        for data in read_queue:
             self.year_to_count[data[0]] = data[1]
             self.year_to_salary[data[0]] = data[2]
             self.year_to_count_needed[data[0]] = data[3]
@@ -300,7 +299,7 @@ class DataSet:
             str: название нового csv-чанка.
         """
         file_name = f"file_{current_year}.csv"
-        with open(f"{self.csv_direction}/{file_name}", "w", encoding='utf-8-sig', newline='') as csv_file:
+        with open(f"{self.csv_dir}/{file_name}", "w", encoding='utf-8-sig', newline='') as csv_file:
             writer = csv.writer(csv_file)
             writer.writerows(lines)
         return file_name
@@ -337,6 +336,7 @@ class Report:
 
         Args:
             value (int or float): число от 0 до 1.
+
         Returns:
             str: Проценты с 2-мя цифрами после запятой и знаком '%'.
         """
@@ -348,6 +348,7 @@ class Report:
 
         Args:
             columns (list): Список столбцов.
+
         Returns:
             list: Список строк.
         """
@@ -357,28 +358,7 @@ class Report:
                 rows_list[cell][col] = columns[col][cell]
         return rows_list
 
-
-    def generate_image(self, file_name: str):
-        """Функция создания png-файла с графиками.
-
-        Args:
-            file_name (str): название получившегося файла.
-        """
-        fig, axis = plt.subplots(2, 2)
-        plt.rcParams['font.size'] = 8
-        self.standart_chart(axis[0, 0], self.data.year_to_salary.keys(), self.data.year_to_salary_needed.keys(),
-                          self.data.year_to_salary.values(), self.data.year_to_salary_needed.values(),
-                          "Средняя з/п", "з/п программист", "Уровень зарплат по годам")
-        self.standart_chart(axis[0, 1], self.data.year_to_count.keys(), self.data.year_to_count_needed.keys(),
-                          self.data.year_to_count.values(), self.data.year_to_count_needed.values(),
-                          "Количество вакансий", "Количество вакансий программист", "Количество вакансий по годам")
-        self.horizontal_chart(axis[1, 0])
-        self.diogram(axis[1, 1], plt)
-        fig.set_size_inches(16, 9)
-        fig.tight_layout(h_pad=2)
-        fig.savefig(file_name)
-
-    def standart_chart(self, ax: Axes, keys1, keys2, values1, values2, label1, label2, title):
+    def standart_bar(self, ax: Axes, keys1, keys2, values1, values2, label1, label2, title):
         """Функция создания 2-х обычных столбчатых диаграмм на одном поле.
 
         Args:
@@ -400,7 +380,7 @@ class Report:
         ax.grid(axis="y")
         ax.tick_params(axis='x', labelrotation=90)
 
-    def horizontal_chart(self, ax: Axes):
+    def horizontal_bar(self, ax: Axes):
         """Функция создания горизонтальной диаграммы.
 
         Args:
@@ -416,7 +396,7 @@ class Report:
                            verticalalignment="center", horizontalalignment="right")
         ax.invert_yaxis()
 
-    def diogram(self, ax: Axes, plt):
+    def pie_diogramm(self, ax: Axes, plt):
         """Функция создания круговой диаграммы.
 
         Args:
@@ -426,13 +406,32 @@ class Report:
         ax.set_title("Доля вакансий по городам", fontsize=16)
         plt.rcParams['font.size'] = 8
         dictionary = self.data.area_to_piece
-        dictionary["Другие"] = 1 - sum([value for value in dictionary.values()])
+        dictionary["Другие"] = 1 - sum([val for val in dictionary.values()])
         keys = list(dictionary.keys())
         ax.pie(x=list(dictionary.values()), labels=keys)
         ax.axis('equal')
         ax.tick_params(axis="both", labelsize=6)
         plt.rcParams['font.size'] = 16
 
+    def generate_image(self, file_name: str):
+        """Функция создания png-файла с графиками.
+
+        Args:
+            file_name (str): название получившегося файла.
+        """
+        fig, axis = plt.subplots(2, 2)
+        plt.rcParams['font.size'] = 8
+        self.standart_bar(axis[0, 0], self.data.year_to_salary.keys(), self.data.year_to_salary_needed.keys(),
+                          self.data.year_to_salary.values(), self.data.year_to_salary_needed.values(),
+                          "Средняя з/п", "з/п программист", "Уровень зарплат по годам")
+        self.standart_bar(axis[0, 1], self.data.year_to_count.keys(), self.data.year_to_count_needed.keys(),
+                          self.data.year_to_count.values(), self.data.year_to_count_needed.values(),
+                          "Количество вакансий", "Количество вакансий программист", "Количество вакансий по годам")
+        self.horizontal_bar(axis[1, 0])
+        self.pie_diogramm(axis[1, 1], plt)
+        fig.set_size_inches(16, 9)
+        fig.tight_layout(h_pad=2)
+        fig.savefig(file_name)
 
     def generate_pdf(self, file_name: str):
         """Сгенерировать pdf-файл из получившихся данных, png-графиков, и HTML-шаблона с названием new_template.html.
@@ -444,7 +443,7 @@ class Report:
         self.generate_image(image_name)
         html = open("new_template.html").read()
         template = Template(html)
-        result_dict = {
+        keys_to_values = {
             "profession_name": "Аналитика по зарплатам и городам для профессии " + self.data.profession,
             "image_name": "D:/GitHub/Tarasov/" + image_name,
             "year_head": "Статистика по годам",
@@ -455,7 +454,7 @@ class Report:
             "count_columns": len(self.sheet_2_headers),
             "cities_rows": self.sheet_2_rows
         }
-        pdf_template = template.render(result_dict)
+        pdf_template = template.render(keys_to_values)
         config = pdfkit.configuration(wkhtmltopdf=r"C:/Program Files/wkhtmltopdf/bin/wkhtmltopdf.exe")
         pdfkit.from_string(pdf_template, file_name, configuration=config, options={"enable-local-file-access": True})
 
@@ -470,19 +469,19 @@ def do_exit(message):
     exit(0)
 
 
-def create_pdf(csv_direction: str, file_name: str):
-    file_csv_name = input("Введите название csv файла: ")
+def create_pdf(csv_dir: str, file_name: str):
+    file_csv_name = input("Введите название файла: ")
     profession = input("Введите название профессии: ")
     start_time = time.time()
-    if os.path.exists(csv_direction):
+    if os.path.exists(csv_dir):
         import shutil
-        shutil.rmtree(csv_direction)
-    os.mkdir(csv_direction)
-    data_set = DataSet(csv_direction, profession, file_csv_name)
+        shutil.rmtree(csv_dir)
+    os.mkdir(csv_dir)
+    data_set = DataSet(csv_dir, profession, file_csv_name)
     report = Report(data_set)
     report.generate_pdf(file_name)
     print("done: " + str(time.time() - start_time))
 
 
 if __name__ == '__main__':
-    create_pdf("csv", "report_multi.pdf")
+    create_pdf("csv", "report_async.pdf")
