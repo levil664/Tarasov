@@ -1,0 +1,51 @@
+import os
+import sys
+import argparse
+
+from . import *
+
+def _test(testfiles, verbose):
+    if not testfiles:
+        name = os.path.basename(argv[0])
+        if '__loader__' in globals():          # python -m
+            name, _ = os.path.splitext(name)
+        print("usage: {0} [-v] file ...".format(name))
+        return 2
+    for filename in testfiles:
+        if filename.endswith(".py"):
+            # It is a module -- insert its dir into sys.path and try to
+            # import it. If it is part of a package, that possibly
+            # won't work because of package imports.
+            dirname, filename = os.path.split(filename)
+            sys.path.insert(0, dirname)
+            m = __import__(filename[:-3])
+            del sys.path[0]
+            failures, _ = testmod(m, verbose=verbose)
+        else:
+            failures, _ = testfile(filename, module_relative=False,
+                                   verbose=verbose)
+        if failures:
+            return 1
+    return 0
+
+def test(args=None, exit=True, verbosity=False):
+    if args is None:
+        args = sys.argv[1:]
+    
+    parser = argparse.ArgumentParser(description='Run doctest2 on some files.')
+    parser.add_argument('-v', '--verbose', dest='verbose', action='store_const',
+                       const=True, default=verbosity,
+                       help='enable verbose output')
+    parser.add_argument('files', metavar='FILE', type=str, nargs='*',
+                       help='a file to be tested')
+    
+    arguments = parser.parse_args(args)
+    
+    retval = _test(arguments.files, arguments.verbose)
+    
+    if exit:
+        sys.exit(retval)
+    else:
+        return retval
+    
+    

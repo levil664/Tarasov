@@ -1,0 +1,148 @@
+'''These are the tests for the doctest2 shell support
+
+Unfortunately it's very hard to do this in a cross-platform way.
+For example, on unix you can write out a text file using ``cat``, on
+windows you would use ``type``.
+
+For a particular example, avoid echo in cmd, it does weird things (like trailing
+spaces). In general, one separates cmd and sh examples by using a different
+prefix.
+
+    $ python3 -c "print('hi, $VAR_NOEXIST')"
+    hi, 
+    
+    cmd> python3 -c "print('hi, $VAR_NOEXIST')"
+    hi, $VAR_NOEXIST
+
+Note the blank like that's necessary to separate different types of doctest.
+
+But let's do a few basics that work everywhere,
+and use python to do more advanced things. Also, for stuff that's
+posix/windows specific, maybe there'll be supplemental tests or something.
+
+    $ (
+    > python3 -c "print('these commands are grouped although the precise')"
+    > python3 -c "print('semantics of the grouping differ between sh and cmd.')"
+    > )
+    these commands are grouped although the precise
+    semantics of the grouping differ between sh and cmd.
+    
+    cmd> (
+    ? python3 -c "print('these commands are grouped although the precise')"
+    ? python3 -c "print('semantics of the grouping differ between sh and cmd.')"
+    ? )
+    these commands are grouped although the precise
+    semantics of the grouping differ between sh and cmd.
+
+Most of the other tests also apply just as much to Python tests, and are covered
+in the Python doctest suites.
+
+But with regard to shell testing, doctest2 adds the ability for a single test
+to have multiple backends. A shell test like that above might be executed by
+either cmd or by a POSIX-compliant sh. In order to add utility, doctest2 will
+try to execute it on both, if both are available.
+
+    >>> import doctest2
+    >>> from doctest2 import run_docstring_examples
+    >>> def f():
+    ...     """This test should pass on both cmd and sh:
+    ...     
+    ...         $ python3 -c "print('herro world')"
+    ...         herro world
+    ...         
+    ...         cmd> python3 -c "print('herro world')"
+    ...         herro world
+    ...     """
+    ...
+    >>> from doctest2 import constants
+    >>> number_of_shells = constants.HAS_SH + constants.HAS_CMD
+    >>> test_results = run_docstring_examples(f, {})
+    >>> test_results.failed
+    0
+    >>> test_results.attempted == number_of_shells
+    True
+
+And for testfile...
+
+    >>> import doctest2.tests, os
+    >>> from doctest2 import testfile, constants
+    >>> number_of_shells = constants.HAS_SH + constants.HAS_CMD
+    >>> test_results = testfile('test_doctest2_shell2.py')
+    >>> test_results.failed
+    0
+    >>> test_results.attempted == number_of_shells
+    True
+
+and testmod...
+
+    >>> import doctest2.tests, os
+    >>> from doctest2 import testmod
+    >>> from doctest2.tests import test_doctest2_shell2 as t
+    >>> number_of_shells = constants.HAS_SH + constants.HAS_CMD
+    >>> test_results = testmod(t)
+    >>> test_results.failed
+    0
+    >>> test_results.attempted == number_of_shells
+    True
+
+and the unit test api...
+
+    >>> import doctest2.tests, os, unittest
+    >>> from doctest2 import DocFileSuite, DocTestSuite
+    >>> from doctest2.tests import test_doctest2_shell2 as t
+    >>> number_of_shells = constants.HAS_SH + constants.HAS_CMD
+    
+    >>> result = DocTestSuite(t).run(unittest.TestResult())
+    >>> result.testsRun == number_of_shells
+    True
+    >>> result.wasSuccessful()
+    True
+    >>> for t, err in result.errors:
+    ...    print(err); print()
+    >>> for t, fail in result.failures:
+    ...    print(fail); print()
+    
+    >>> result = DocFileSuite('test_doctest2_shell2.py').run(unittest.TestResult())
+    >>> result.testsRun == number_of_shells
+    True
+    >>> result.wasSuccessful()
+    True
+
+Also, commented directives are supported, even on cmd, which lacks a comment
+mechanism (inline, anyway). doctest filters out things that look like bash
+comments containing doctest directives, before they are
+passed to the shell.
+
+    cmd> python3 -c "print(1)" # this would be text in cmd, but it's filtered out.
+    1
+    cmd> # the below comment is a doctest directive.
+    cmd> python3 -c "print(1, 2)" # doctest: +ELLIPSIS
+    ...2
+
+The comment parsing used to use Python's tokenizer, but it now uses pygments
+and the pygments (ba)sh tokenizer. So for example, the second directive would be
+ignored (incorrectly), because doctest would recognize Python's triple quotes,
+and the first (fake) directive, which made the rest of the line a comment.
+Sound complicated? It's not so bad, honest:
+
+    $ echo """ " """ # doctest: BLAH BLAH " # doctest: +ELLIPSIS
+    ...BLAH BLAH...
+
+Test skipping does work, it's sort of a weird process that I unfortunately
+wrote without testing. Basically there are signals sent as to whether the next
+test should proceed, and the test waits until it gets the signal before it
+does so.
+
+    $ python3 -c "print(1)" # doctest: +SKIP
+    2
+    $ python3 -c "print(2)"
+    2
+
+Syntax errors, in sh, are reported and skipped. cmd is not nearly as forgiving.
+
+    $ echo " # doctest: +ELLIPSIS
+    ...
+    $ # the above is some shell-specific error message. Don't try this in cmd.
+
+'''
+
