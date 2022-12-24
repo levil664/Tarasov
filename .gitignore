@@ -5,3 +5,11 @@ venv/
 /.idea
 /csv
 pyvenv.cfg
+/Lib
+Lib/
+Scripts/
+/Scripts
+/share
+share/
+__pycache__/
+/__pycache__
