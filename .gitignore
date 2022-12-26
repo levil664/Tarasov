@@ -1,15 +1,9 @@
-.idea/
-csv/
-venv/
 *.csv
 /.idea
 /csv
 pyvenv.cfg
 /Lib
-Lib/
-Scripts/
 /Scripts
 /share
-share/
-__pycache__/
 /__pycache__
+/curency
