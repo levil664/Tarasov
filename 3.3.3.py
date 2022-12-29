@@ -13,6 +13,12 @@ dates_to = ['2022-12-26T06:00:00+0300', '2022-12-26T12:00:00+0300', '2022-12-26T
 
 
 def get_vacancies(template):
+    """
+    Метод получающий из API HH (https://api.hh.ru/) все IT-вакансии за любой прошедший будний день текущего месяца
+
+    Attributes:
+        template (dict): шаблон выгрузки
+    """
     api_url = 'https://api.hh.ru'
     request = requests.get(f'{api_url}/vacancies', template)
     if request.status_code != 200:

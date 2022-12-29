@@ -13,6 +13,15 @@ with open('complite.csv', encoding='utf-8') as file:
 
 
 def get_salary(salary_from, salary_to, salary_currency, published_at):
+    """
+    Метод обработает данные из колонок ‘salary_from’, ‘salary_to’, ‘salary_currency’ исходя из правил прописанных в ТЗ
+
+    Attributes:
+        salary_from: Нижняя предел вилки оклада
+        salary_to: Верхний предел вилки оклада
+        salary_currency: В какой валюте
+        published_at: Время публикации
+    """
     year, month = published_at.split('T')[0].split('-')[:2]
     if (salary_to == 0 and salary_from == 0) or (year, month) not in complite or salary_currency == '':
         return None

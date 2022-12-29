@@ -4,6 +4,13 @@ import pdfkit
 
 
 def get_statistics(filename, vacancy_name):
+    """
+    Метод обрабатывающий полученную базу данных исходя из названия полученной вакансии, формирует pdf с полученными результатами
+
+    Attributes:
+        filename: Название файла
+        vacancy_name: Название вакансии
+    """
     result = pd.read_csv(filename, encoding='utf-8-sig')\
             .dropna()\
             .assign(salary=lambda x: x['salary'].astype('int64'),

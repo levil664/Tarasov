@@ -10,6 +10,13 @@ max_date = 2022, 7, 19, 11, 10, 32
 
 
 def get_curency_from_bank(min_date, max_date):
+    """
+    Метод, который собирает курсы валют с помощью API сайта ЦБ РФ
+
+    Attributes:
+        min_date: крайняя минимальная дата
+        max_date: крайняя максимальная дата
+    """
     for year in range(min_date[0], max_date[0] + 1):
         for month in range(1, 13):
             if year == max_date[0] and month > max_date[1]:
@@ -21,6 +28,9 @@ def get_curency_from_bank(min_date, max_date):
                 request_file.write(request.text)
 
 def do_split(i, sep, delete_empty = False, func = lambda x: x):
+    """
+    Вспомогательный метод помогающий разбить время
+    """
     results = []
     temp = ''
     for element in i:
@@ -33,8 +43,16 @@ def do_split(i, sep, delete_empty = False, func = lambda x: x):
     results.append(func(temp))
     return results
 
-def compile_curency_from_bank(currencies, min_date, max_date):
-    with open('compile.csv', 'w', encoding='utf-8', newline='') as file:
+def complite_curency_from_bank(currencies, min_date, max_date):
+    """
+    Метод формирующий dataframe
+
+    Attributes:
+        currencies: массив валют (RUR, USD...)
+        min_date: крайняя минимальная дата
+        max_date: крайняя максимальная дата
+    """
+    with open('complite.csv', 'w', encoding='utf-8', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['date'] + currencies)
         for year in range(min_date[0], max_date[0] + 1):
@@ -55,6 +73,9 @@ def compile_curency_from_bank(currencies, min_date, max_date):
                 writer.writerow(row)
 
 def get_min_max_date(filename, lower_limit=5000):
+    """
+    Метод определения максимальной и минимальной выборки
+    """
     res_dict = dict()
     min_date = 2023, 12, 31, 23, 59, 59
     max_date = 2000, 12, 31, 23, 59, 59
@@ -74,4 +95,4 @@ def get_min_max_date(filename, lower_limit=5000):
     return list(filter(lambda x: res_dict[x] > lower_limit, res_dict)), min_date, max_date
 
 get_curency_from_bank(min_date, max_date)
-compile_curency_from_bank(currencies, min_date, max_date)
+complite_curency_from_bank(currencies, min_date, max_date)

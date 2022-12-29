@@ -8,13 +8,13 @@
     <h2 style="text-align: center;">Статистика по годам для выбранной профессии и региона</h2>
     <table style="width:100%; border-collapse: collapse;  text-align: center;">
         <tr>
-            {% for head in template_1 -%}
+            {% for head in title_1 -%}
                 <th style="border: 1px solid black;">{{ head }}</th>
             {% endfor %}
         </tr>
         {% for year in dictionary_year -%}
             <tr>
-                {% for head in template_1 -%}
+                {% for head in title_1 -%}
                     <td style="border: 1px solid black;">{{ dictionary_year[year][head] }}</td>
                 {% endfor %}
             </tr>
@@ -23,13 +23,13 @@
     <h2 style="text-align: center;">Cтатистика по городам</h2>
     <table style="width:100%; border-collapse: collapse;  text-align: center; horiz-align: center">
             <tr>
-                {% for head in template_2 -%}
+                {% for head in title_2 -%}
                     <th style="border: 1px solid black;">{{ head }}</th>
                 {% endfor %}
             </tr>
             {% for area in dictionary_area -%}
                 <tr>
-                    {% for head in template_2 -%}
+                    {% for head in title_2 -%}
                         <td style="border: 1px solid black;">{{ dictionary_area[area][head] }}</td>
                     {% endfor %}
                 </tr>
