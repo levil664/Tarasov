@@ -32,11 +32,6 @@ def get_statistics(filename, vacancy_name):
     config = pdfkit.configuration(wkhtmltopdf=r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe')
     pdfkit.from_string(template, '3.4.2.pdf', configuration=config)
 
-    print('Динамика уровня зарплат по годам:', salary_statistic)
-    print('Динамика уровня зарплат по годам для выбранной профессии:', selected_salary_statistic)
-    print('Динамика количества вакансий по годам:', count_statistic)
-    print('Динамика количества вакансий по годам для выбранной профессии:',selected_count_statistic)
-
 
 filename = input()
 vacancy_name = input()
