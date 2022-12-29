@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>pdf_template</title>
+</head>
+<body style="font-family: Verdana, sans-serif;">
+    <h1 style="text-align: center">Статистика по годам</h1>
+    <table style="border-collapse: collapse;  text-align: center">
+        <tr>
+            {% for head in header -%}
+                <th style="border: 1px solid black;">{{ head }}</th>
+            {% endfor %}
+        </tr>
+        {% for year in d -%}
+            <tr>
+                {% for head in header -%}
+                    <td style="border: 1px solid black;">{{ d[year][head] }}</td>
+                {% endfor %}
+            </tr>
+        {% endfor -%}
+    </table>
+</body>
+</html>
